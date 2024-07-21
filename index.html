@@ -47,10 +47,22 @@
                 return 'https://worker.keiichimochi.workers.dev';
             }
         })();
-
+    
         let searchHistory = [];
         let currentConversation = [];
-
+    
+        // DOMContentLoaded イベントリスナーを使用して、ページ読み込み完了時の処理を定義
+        document.addEventListener('DOMContentLoaded', () => {
+            // 検索履歴の表示を初期化
+            updateHistoryDisplay();
+            
+            // 「解説を取得」ボタンにクリックイベントリスナーを追加
+            document.querySelector('button').addEventListener('click', () => getExplanation());
+            
+            // 質問ボタンにクリックイベントリスナーを追加
+            document.querySelector('#conversationArea button').addEventListener('click', askQuestion);
+        });
+    
         async function getExplanation(keyword = null) {
             const inputKeyword = keyword || document.getElementById('keyword').value;
             const resultDiv = document.getElementById('result');
