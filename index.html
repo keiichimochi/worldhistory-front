@@ -3,11 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>世界史 AI 解説テスト</title>
-
+    <title>インタラクティブ世界史 AI 解説</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1, h2, h3 { color: #333; }
+        input, button, textarea { font-size: 16px; padding: 5px 10px; margin: 5px 0; }
+        textarea { width: 100%; height: 100px; }
+        #result, #subExplanation, #conversationArea { margin-top: 20px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; }
+        .loading { color: #666; font-style: italic; }
+        .keyword { color: blue; cursor: pointer; text-decoration: underline; }
+        #keywordList { margin-top: 10px; }
+        .keyword-chip { display: inline-block; background-color: #e0e0e0; padding: 5px 10px; margin: 2px; border-radius: 16px; cursor: pointer; }
+        #history { margin-top: 20px; }
+        .history-item { cursor: pointer; text-decoration: underline; }
+        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .conversation-message { margin-bottom: 10px; }
+        .user-message { background-color: #e6f3ff; padding: 5px; border-radius: 5px; }
+        .ai-message { background-color: #f0f0f0; padding: 5px; border-radius: 5px; }
+    </style>
 </head>
 <body>
-    <h1>世界史 AI 解説テスト テスト用</h1>
-    
+    <h1>インタラクティブ世界史 AI 解説</h1>
+    <input type="text" id="keyword" placeholder="世界史のキーワードを入力" value="フランス革命">
+    <p>調べたいワードを入力</p>
+    <button onclick="getExplanation()">解説を取得</button>
+    <div id="result"></div>
+    <div id="keywordList"></div>
+    <div id="subExplanation"></div>
+    <div id="conversationArea">
+        <h3>追加の質問：</h3>
+        <textarea id="userQuestion" placeholder="この話題について、さらに質問したいことを入力してください"></textarea>
+        <button onclick="askQuestion()">質問する</button>
+        <div id="conversation"></div>
+    </div>
+    <div id="history"><h3>検索履歴：</h3></div>
+
+    <script>
+        const WORKER_URL = (() => {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                return 'http://127.0.0.1:8787';
+            } else {
+                return 'https://worker.keiichimochi.workers.dev';
+            }
+        })();
+
+        let searchHistory = [];
+        let currentConversation = [];
+
+        async function getExplanation(keyword = null) {
+            const inputKeyword = keyword || document.getElementById('keyword').value;
+            const resultDiv = document.getElementById('result');
+            const subExplanationDiv = document.getElementById('subExplanation');
+            const keywordListDiv = document.getElementById('keywordList');
+            const conversationDiv = document.getElementById('conversation');
+            
+            if (!inputKeyword) {
+                resultDiv.innerHTML = 'キーワードを入力してください。';
+                return;
+            }
+
+            const targetDiv = keyword ? subExplanationDiv : resultDiv;
+            targetDiv.innerHTML = '<div class="spinner"></div><p class="loading">AIの応答を待っています...</p>';
+            keywordListDiv.innerHTML = '';
+            conversationDiv.innerHTML = '';
+            currentConversation = [];
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini",
+                        messages: [
+                            {
+                                role: "system",
+                                content: "あなたは世界一世界史に詳しい１９歳のギャルです。ハイテンションで回答してください。世界史のキーワードについて、面白おかしく、でも教育的な解説をしてください。関連するイベントや人物、前後の年表も教えてください。また、解説の後に、重要なキーワードを5つ程度リストアップしてください。"
+                            },
+                            {
+                                role: "user",
+                                content: `世界史の「${inputKeyword}」について解説してください。解説の後に、重要なキーワードを、[キーワード：]に続けてリストアップしてください。`
+                            }
+                        ],
+                        max_tokens: 1000
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const fullContent = data.choices[0].message.content;
+                const { explanation, keywords } = extractExplanationAndKeywords(fullContent);
+                const highlightedExplanation = highlightKeywords(explanation, keywords);
+                targetDiv.innerHTML = `<h2>${inputKeyword}の解説：</h2>${highlightedExplanation}`;
+                displayKeywords(keywords);
+
+                currentConversation.push({ role: "assistant", content: fullContent });
+
+                if (!keyword) {
+                    addToHistory(inputKeyword);
+                }
+
+                if (keyword) {
+                    subExplanationDiv.scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                targetDiv.innerHTML = `<p>エラーが発生しました： ${error.message}</p>`;
+            }
+        }
+
+        async function askQuestion() {
+            const userQuestion = document.getElementById('userQuestion').value;
+            if (!userQuestion) return;
+
+            const conversationDiv = document.getElementById('conversation');
+            conversationDiv.innerHTML += `<div class="conversation-message user-message"><strong>あなた:</strong> ${userQuestion}</div>`;
+            conversationDiv.innerHTML += '<div class="spinner"></div><p class="loading">AIの応答を待っています...</p>';
+
+            currentConversation.push({ role: "user", content: userQuestion });
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini",
+                        messages: [
+                            {
+                                role: "system",
+                                content: "あなたは世界一世界史に詳しい１９歳のギャルです。ハイテンションで回答してください。質問に対して、面白おかしく、でも教育的な解説をしてください。"
+                            },
+                            ...currentConversation
+                        ],
+                        max_tokens: 1000
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                currentConversation.push({ role: "assistant", content: aiResponse });
+
+                conversationDiv.innerHTML = currentConversation.map(msg => 
+                    `<div class="conversation-message ${msg.role === 'user' ? 'user-message' : 'ai-message'}">
+                        <strong>${msg.role === 'user' ? 'あなた' : 'AI'}:</strong> ${msg.content}
+                    </div>`
+                ).join('');
+
+                document.getElementById('userQuestion').value = '';
+            } catch (error) {
+                console.error('Error:', error);
+                conversationDiv.innerHTML += `<p>エラーが発生しました： ${error.message}</p>`;
+            }
+        }
+
+        function extractExplanationAndKeywords(content) {
+            const parts = content.split(/\[キーワード：]/i);
+            let explanation = parts[0].trim();
+            let keywords = [];
+            if (parts.length > 1) {
+                keywords = parts[1].split(/[,、\n]/).map(k => k.trim()).filter(k => k);
+            }
+            return { explanation, keywords };
+        }
+
+        function highlightKeywords(text, keywords) {
+            let highlightedText = text;
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+                highlightedText = highlightedText.replace(regex, `<span class="keyword" onclick="getExplanation('${keyword}')">${keyword}</span>`);
+            });
+            return highlightedText;
+        }
+
+        function displayKeywords(keywords) {
+            const keywordListDiv = document.getElementById('keywordList');
+            keywordListDiv.innerHTML = '<h3>重要なキーワード：</h3>';
+            keywords.forEach(keyword => {
+                const chip = document.createElement('span');
+                chip.className = 'keyword-chip';
+                chip.textContent = keyword;
+                chip.onclick = () => getExplanation(keyword);
+                keywordListDiv.appendChild(chip);
+            });
+        }
+
+        function addToHistory(keyword) {
+            if (!searchHistory.includes(keyword)) {
+                searchHistory.unshift(keyword);
+                if (searchHistory.length > 5) {
+                    searchHistory.pop();
+                }
+                updateHistoryDisplay();
+            }
+        }
+
+        function updateHistoryDisplay() {
+            const historyDiv = document.getElementById('history');
+            historyDiv.innerHTML = '<h3>検索履歴：</h3>';
+            searchHistory.forEach(item => {
+                const historyItem = document.createElement('span');
+                historyItem.className = 'history-item';
+                historyItem.textContent = item;
+                historyItem.onclick = () => {
+                    document.getElementById('keyword').value = item;
+                    getExplanation(item);
+                };
+                historyDiv.appendChild(historyItem);
+                historyDiv.appendChild(document.createTextNode(' '));
+            });
+        }
+
+        // 初期表示時にフランス革命の解説を取得
+        window.onload = () => getExplanation('フランス革命');
+    </script>
 </body>
 </html>
