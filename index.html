@@ -12,7 +12,7 @@
         #result, #subExplanation, #conversationArea { margin-top: 20px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; }
         .loading { color: #666; font-style: italic; }
         .keyword { color: blue; cursor: pointer; text-decoration: underline; }
-        #keywordList { margin-top: 10px; }
+        .keyword-list { margin-top: 10px; }
         .keyword-chip { display: inline-block; background-color: #e0e0e0; padding: 5px 10px; margin: 2px; border-radius: 16px; cursor: pointer; }
         #history { margin-top: 20px; }
         .history-item { cursor: pointer; text-decoration: underline; }
@@ -27,14 +27,13 @@
     <h1>インタラクティブ世界史 AI 解説</h1>
     <input type="text" id="keyword" placeholder="世界史のキーワードを入力" value="フランス革命">
     <p>調べたいワードを入力</p>
-    <button onclick="getExplanation()">AIに聞いてみる</button>
+    <button id="explainButton">AIに聞いてみる</button>
     <div id="result"></div>
-    <div id="keywordList"></div>
     <div id="subExplanation"></div>
     <div id="conversationArea">
         <h3>追加の質問：</h3>
         <textarea id="userQuestion" placeholder="この話題について、さらに質問したいことを入力してください"></textarea>
-        <button onclick="askQuestion()">質問する</button>
+        <button id="askButton">質問する</button>
         <div id="conversation"></div>
     </div>
     <div id="history"><h3>検索履歴：</h3></div>
@@ -51,23 +50,16 @@
         let searchHistory = [];
         let currentConversation = [];
     
-        // DOMContentLoaded イベントリスナーを使用して、ページ読み込み完了時の処理を定義
         document.addEventListener('DOMContentLoaded', () => {
-            // 検索履歴の表示を初期化
             updateHistoryDisplay();
-            
-            // 「解説を取得」ボタンにクリックイベントリスナーを追加
-            document.querySelector('button').addEventListener('click', () => getExplanation());
-            
-            // 質問ボタンにクリックイベントリスナーを追加
-            document.querySelector('#conversationArea button').addEventListener('click', askQuestion);
+            document.getElementById('explainButton').addEventListener('click', () => getExplanation());
+            document.getElementById('askButton').addEventListener('click', askQuestion);
         });
     
         async function getExplanation(keyword = null) {
             const inputKeyword = keyword || document.getElementById('keyword').value;
             const resultDiv = document.getElementById('result');
             const subExplanationDiv = document.getElementById('subExplanation');
-            const keywordListDiv = document.getElementById('keywordList');
             const conversationDiv = document.getElementById('conversation');
             
             if (!inputKeyword) {
@@ -77,7 +69,6 @@
 
             const targetDiv = keyword ? subExplanationDiv : resultDiv;
             targetDiv.innerHTML = '<div class="spinner"></div><p class="loading">AIの応答を待っています...</p>';
-            keywordListDiv.innerHTML = '';
             conversationDiv.innerHTML = '';
             currentConversation = [];
 
@@ -112,7 +103,7 @@
                 const { explanation, keywords } = extractExplanationAndKeywords(fullContent);
                 const highlightedExplanation = highlightKeywords(explanation, keywords);
                 targetDiv.innerHTML = `<h2>${inputKeyword}の解説：</h2>${highlightedExplanation}`;
-                displayKeywords(keywords);
+                displayKeywords(keywords, targetDiv);
 
                 currentConversation.push({ role: "assistant", content: fullContent });
 
@@ -198,8 +189,9 @@
             return highlightedText;
         }
 
-        function displayKeywords(keywords) {
-            const keywordListDiv = document.getElementById('keywordList');
+        function displayKeywords(keywords, targetDiv) {
+            const keywordListDiv = document.createElement('div');
+            keywordListDiv.className = 'keyword-list';
             keywordListDiv.innerHTML = '<h3>重要なキーワード：</h3>';
             keywords.forEach(keyword => {
                 const chip = document.createElement('span');
@@ -208,6 +200,7 @@
                 chip.onclick = () => getExplanation(keyword);
                 keywordListDiv.appendChild(chip);
             });
+            targetDiv.appendChild(keywordListDiv);
         }
 
         function addToHistory(keyword) {
@@ -235,9 +228,6 @@
                 historyDiv.appendChild(document.createTextNode(' '));
             });
         }
-
-        // 初期表示時にフランス革命の解説を取得
-        // window.onload = () => getExplanation('フランス革命');
     </script>
 </body>
 </html>
