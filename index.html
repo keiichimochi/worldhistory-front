@@ -124,11 +124,11 @@
             const userQuestion = document.getElementById('userQuestion').value;
             if (!userQuestion) return;
 
-            const conversationDiv = document.getElementById('conversation');
-            conversationDiv.innerHTML += `<div class="conversation-message user-message"><strong>あなた:</strong> ${userQuestion}</div>`;
-            conversationDiv.innerHTML += '<div class="spinner"></div><p class="loading">AIの応答を待っています...</p>';
-
             currentConversation.push({ role: "user", content: userQuestion });
+            updateConversationDisplay();
+
+            const conversationDiv = document.getElementById('conversation');
+            conversationDiv.innerHTML += '<div class="spinner"></div><p class="loading">AIの応答を待っています...</p>';
 
             try {
                 const response = await fetch(WORKER_URL, {
@@ -157,17 +157,22 @@
                 const aiResponse = data.choices[0].message.content;
                 currentConversation.push({ role: "assistant", content: aiResponse });
 
-                conversationDiv.innerHTML = currentConversation.map(msg => 
-                    `<div class="conversation-message ${msg.role === 'user' ? 'user-message' : 'ai-message'}">
-                        <strong>${msg.role === 'user' ? 'あなた' : 'AI'}:</strong> ${msg.content}
-                    </div>`
-                ).join('');
+                updateConversationDisplay();
 
                 document.getElementById('userQuestion').value = '';
             } catch (error) {
                 console.error('Error:', error);
                 conversationDiv.innerHTML += `<p>エラーが発生しました： ${error.message}</p>`;
             }
+        }
+
+        function updateConversationDisplay() {
+            const conversationDiv = document.getElementById('conversation');
+            conversationDiv.innerHTML = currentConversation.map(msg => 
+                `<div class="conversation-message ${msg.role === 'user' ? 'user-message' : 'ai-message'}">
+                    <strong>${msg.role === 'user' ? 'あなた' : 'AI'}:</strong> ${msg.content}
+                </div>`
+            ).join('');
         }
 
         function extractExplanationAndKeywords(content) {
