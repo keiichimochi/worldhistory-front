@@ -70,7 +70,6 @@
             const targetDiv = keyword ? subExplanationDiv : resultDiv;
             targetDiv.innerHTML = '<div class="spinner"></div><p class="loading">AIの応答を待っています...</p>';
             conversationDiv.innerHTML = '';
-            currentConversation = [];
 
             try {
                 const response = await fetch(WORKER_URL, {
@@ -128,6 +127,7 @@
             updateConversationDisplay();
 
             const conversationDiv = document.getElementById('conversation');
+            conversationDiv.innerHTML = ''; // 質問ボタンを押したときに表示をリセット
             conversationDiv.innerHTML += '<div class="spinner"></div><p class="loading">AIの応答を待っています...</p>';
 
             try {
