@@ -5,22 +5,109 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>インタラクティブ世界史 AI 解説</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
-        h1, h2, h3 { color: #333; }
-        input, button, textarea { font-size: 16px; padding: 5px 10px; margin: 5px 0; }
-        textarea { width: 100%; height: 100px; }
-        #result, #subExplanation, #conversationArea { margin-top: 20px; border: 1px solid #ddd; padding: 10px; background-color: #f9f9f9; }
-        .loading { color: #666; font-style: italic; }
-        .keyword { color: blue; cursor: pointer; text-decoration: underline; }
-        .keyword-list { margin-top: 10px; }
-        .keyword-chip { display: inline-block; background-color: #e0e0e0; padding: 5px 10px; margin: 2px; border-radius: 16px; cursor: pointer; }
-        #history { margin-top: 20px; }
-        .history-item { cursor: pointer; text-decoration: underline; }
-        .spinner { display: inline-block; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .conversation-message { margin-bottom: 10px; }
-        .user-message { background-color: #e6f3ff; padding: 5px; border-radius: 5px; }
-        .ai-message { background-color: #f0f0f0; padding: 5px; border-radius: 5px; }
+        body { 
+            font-family: 'Noto Sans JP', sans-serif; 
+            line-height: 1.8; 
+            padding: 20px; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            color: #333;
+            background-color: #f0f0f0;
+        }
+        h1, h2, h3 { 
+            color: #2c3e50; 
+            font-weight: 700;
+        }
+        input, button, textarea { 
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 16px; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        textarea { 
+            width: 100%; 
+            height: 100px; 
+        }
+        #result, #subExplanation, #conversationArea { 
+            margin-top: 20px; 
+            border: 1px solid #ddd; 
+            padding: 20px; 
+            background-color: #ffffff; 
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .loading { 
+            color: #666; 
+            font-style: italic; 
+        }
+        .keyword { 
+            color: #2980b9; 
+            cursor: pointer; 
+            text-decoration: underline; 
+            font-weight: bold;
+        }
+        .keyword-list { 
+            margin-top: 15px; 
+        }
+        .keyword-chip { 
+            display: inline-block; 
+            background-color: #ecf0f1; 
+            padding: 5px 10px; 
+            margin: 4px; 
+            border-radius: 16px; 
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .keyword-chip:hover {
+            background-color: #bdc3c7;
+        }
+        #history { 
+            margin-top: 20px; 
+        }
+        .history-item { 
+            cursor: pointer; 
+            text-decoration: underline; 
+            margin-right: 10px;
+            color: #2980b9;
+        }
+        .spinner { 
+            display: inline-block; 
+            width: 30px; 
+            height: 30px; 
+            border: 3px solid #f3f3f3; 
+            border-top: 3px solid #3498db; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        .conversation-message { 
+            margin-bottom: 15px; 
+            padding: 10px; 
+            border-radius: 8px;
+        }
+        .user-message { 
+            background-color: #e6f3ff; 
+        }
+        .ai-message { 
+            background-color: #f0f0f0; 
+            font-size: 18px;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
